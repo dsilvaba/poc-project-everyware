@@ -1,8 +1,10 @@
 package com.example.poc_project_everyware;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
@@ -32,12 +34,14 @@ import com.arthenica.mobileffmpeg.FFmpeg;
 import org.florescu.android.rangeseekbar.RangeSeekBar;
 
 import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_CANCEL;
 import static com.arthenica.mobileffmpeg.Config.RETURN_CODE_SUCCESS;
 
 public class MainActivity extends AppCompatActivity {
-
+    private int LOCATION_PERMISSION_CODE = 1;
     private ImageButton reverse, slow, fast;
     private Button cancel;
     private TextView tvLeft, tvRight;
@@ -187,6 +191,22 @@ public class MainActivity extends AppCompatActivity {
                 }, 1000);
             }
         });
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            new AlertDialog.Builder(getApplicationContext())
+                    .setTitle("Permission needed")
+                    .setMessage("This permission is needed because of this and that")
+                    .setPositiveButton("ok", (dialog, which) -> {
+                        ActivityCompat.requestPermissions(this,
+                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_CODE);
+                    })
+                    .setNegativeButton("cancel", (dialog, which) -> dialog.dismiss())
+                    .create().show();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_CODE);
+        }
     }
 
     // Method for creating fast motion video
@@ -303,7 +323,8 @@ public class MainActivity extends AppCompatActivity {
             filePath = dest.getAbsolutePath();
         }
         String exe;
-        exe = "-y -i " + video_url + " -safe 0 -filter_complex [0:v]trim=0:" + startMs / 1000 + ",setpts=PTS-STARTPTS[v1];[0:v]trim=" + startMs / 1000 + ":" + endMs / 1000 + ",setpts=2*(PTS-STARTPTS)[v2];[0:v]trim=" + (endMs / 1000) + ",setpts=PTS-STARTPTS[v3];[0:a]atrim=0:" + (startMs / 1000) + ",asetpts=PTS-STARTPTS[a1];[0:a]atrim=" + (startMs / 1000) + ":" + (endMs / 1000) + ",asetpts=PTS-STARTPTS,atempo=0.5[a2];[0:a]atrim=" + (endMs / 1000) + ",asetpts=PTS-STARTPTS[a3];[v1][a1][v2][a2][v3][a3]concat=n=3:v=1:a=1 " + "-b:v 2097k -vcodec mpeg4 -crf 0 -preset superfast " + filePath;
+//        -vf drawtext=text='Dit is een test!':fontfile=/system/fonts/DroidSans.ttf:fontcolor=red:text=ABCD:x=(w-max_glyph_w)/2:y=h/2-ascent:enable='between(t,23,31)'
+        exe = "-y -i " + video_url + " -vf \"[in]drawtext=fontfile=/system/fonts/DroidSans.ttf:fontsize=30: fontcolor=red: x=(w-max_glyph_w)/2: y=h/2-ascent:text='Test!':enable='between(t,5,10)',drawtext=fontfile=/system/fonts/DroidSans.ttf:fontsize=30: fontcolor=red: x=(w-max_glyph_w)/2: y=h/2-ascent:text='Test 2!':enable='between(t,11,20)'[out]\" -s 852x480 -c:a copy " + filePath;
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
@@ -318,7 +339,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void apply(final long executionId, final int returnCode) {
                 if (returnCode == RETURN_CODE_SUCCESS) {
-                    Log.i(Config.TAG, "Async command execution completed successfully.");
+                    videoView.setVideoURI(Uri.parse(filePath));
+                    video_url = filePath;
+                    videoView.start();
+                    progressDialog.dismiss();
                 } else if (returnCode == RETURN_CODE_CANCEL) {
                     Log.i(Config.TAG, "Async command execution cancelled by user.");
                 } else {
@@ -361,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
             filePath = dest.getAbsolutePath();
         }
 
-        long executionId = FFmpeg.executeAsync("-y -i " + video_url + " -filter_complex [0:v]trim=0:" + endMs / 1000 + ",setpts=PTS-STARTPTS[v1];[0:v]trim=" + startMs / 1000 + ":" + endMs / 1000 + ",reverse,setpts=PTS-STARTPTS[v2];[0:v]trim=" + (startMs / 1000) + ",setpts=PTS-STARTPTS[v3];[v1][v2][v3]concat=n=3:v=1 " + "-b:v 2097k -vcodec mpeg4 -crf 0 -preset superfast " + filePath, new ExecuteCallback() {
+        long executionId = FFmpeg.executeAsync("-y -i " + video_url + " -vf \"[in]drawbox=x=120:y=120:w=100:h=1:color=red:enable='between(t,11,20)'[out]\" -s 852x480 -c:a copy " + filePath, new ExecuteCallback() {
             @Override
             public void apply(final long executionId, final int returnCode) {
                 if (returnCode == RETURN_CODE_SUCCESS) {
