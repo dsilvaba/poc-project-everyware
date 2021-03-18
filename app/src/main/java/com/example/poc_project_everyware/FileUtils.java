@@ -8,6 +8,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.text.TextUtils;
+
 import java.io.File;
 
 public class FileUtils {
@@ -38,8 +40,16 @@ public class FileUtils {
 
             } else if (isDownloadsDocument(uri)) { // DownloadsProvider
                 final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.parseLong(id));
-                path = getDataColumn(context, contentUri, null, null);
+
+                if (!TextUtils.isEmpty(id)) {
+                    if (id.startsWith("raw:")) {
+                        path = id.replaceFirst("raw:", "");
+                    } else {
+                        final Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.parseLong(id));
+                        path = getDataColumn(context, contentUri, null, null);
+                    }
+                }
+
             } else if (isMediaDocument(uri)) { // MediaProvider
                 final String docId = DocumentsContract.getDocumentId(uri);
                 final String[] split = docId.split(":");

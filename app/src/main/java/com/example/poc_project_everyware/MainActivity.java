@@ -68,7 +68,15 @@ public class MainActivity extends AppCompatActivity {
         cancel = (Button) findViewById(R.id.cancel_button);
         fast = (ImageButton) findViewById(R.id.fast);
         videoView = (VideoView) findViewById(R.id.layout_movie_wrapper);
-
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 2);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.MANAGE_EXTERNAL_STORAGE}, 3);
+        }
         // creating the progress dialog
         progressDialog = new ProgressDialog(MainActivity.this);
         progressDialog.setMessage("Please wait..");
@@ -81,10 +89,17 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // create an intent to retrieve the video
                 // file from the device storage
-                Intent intent = new Intent();
+
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("video/*");
-                intent.setAction(Intent.ACTION_PICK);
-                startActivityForResult(Intent.createChooser(intent, "Select Video"), REQUEST_TAKE_GALLERY_VIDEO);
+
+                Intent pickIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
+                pickIntent.setType("video/*");
+
+                Intent chooserIntent = Intent.createChooser(intent, "Select Video");
+                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {pickIntent});
+
+                startActivityForResult(Intent.createChooser(chooserIntent, "Select Video"), REQUEST_TAKE_GALLERY_VIDEO);
             }
         });
 
